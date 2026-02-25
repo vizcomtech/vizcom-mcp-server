@@ -126,3 +126,6 @@ export async function runLoginCli() {
     rl.close();
   }
 }
+
+// Run when invoked directly
+runLoginCli();
