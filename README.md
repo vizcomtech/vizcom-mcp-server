@@ -2,19 +2,28 @@
 
 MCP server for [Vizcom](https://vizcom.ai) — connect your AI assistant to Vizcom's creative design tools.
 
-## Setup
+## Quick Start
 
-### 1. Authenticate
+### Step 1: Log in to your Vizcom account
 
 ```bash
 npx @vizcom/mcp-server login
 ```
 
-Enter your Vizcom email and password. If you signed up with Google/SSO, you'll need to set a password first via https://app.vizcom.ai/forgot-password.
+You'll be prompted for your email and password. That's it — your credentials are saved locally.
 
-### 2. Configure your MCP client
+> **Signed up with Google/SSO?** You'll need to set a password first:
+> go to https://app.vizcom.ai/forgot-password, enter your email, and set a password.
 
-**Claude Desktop / Claude Code:**
+### Step 2: Add it to Claude
+
+**Claude Code (terminal):**
+
+```bash
+claude mcp add vizcom -- npx @vizcom/mcp-server
+```
+
+**Claude Desktop:** Add this to your config file (`~/Library/Application Support/Claude/claude_desktop_config.json` on Mac):
 
 ```json
 {
@@ -27,7 +36,20 @@ Enter your Vizcom email and password. If you signed up with Google/SSO, you'll n
 }
 ```
 
-**With environment variables (advanced):**
+**Cursor:** Add the same config in Cursor Settings > MCP Servers.
+
+### Step 3: Start using it
+
+Open a new conversation and ask things like:
+
+- "Show me my Vizcom workbenches"
+- "Render this sketch as a modern desk lamp in white ceramic"
+- "Modify this design — make the handle more ergonomic"
+- "Generate 4 concept variations of a minimalist desk lamp"
+
+## Advanced Setup
+
+If you prefer environment variables over the login command:
 
 ```json
 {
@@ -63,13 +85,3 @@ Enter your Vizcom email and password. If you signed up with Google/SSO, you'll n
 - **get_generation_status** — Check on an in-progress generation
 - **export_image** — Get the URL for a generated image
 - **create_workbench** — Create a new workbench
-
-## Examples
-
-> "Show me my recent workbenches"
-
-> "Take this sketch and render it as a modern desk lamp in white ceramic"
-
-> "Modify this design — make the handle more ergonomic and add a matte black finish"
-
-> "Generate 4 concept variations of a minimalist desk lamp"
