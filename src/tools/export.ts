@@ -3,6 +3,15 @@ import type { VizcomClient } from '../client.js';
 import type { ToolDefinition } from '../types.js';
 import { QUERIES } from '../queries.js';
 
+async function fetchImageBuffer(imagePath: string): Promise<Buffer> {
+  const url = imagePath.startsWith('http')
+    ? imagePath
+    : `https://storage.vizcom.ai/${imagePath}`;
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`);
+  return Buffer.from(await response.arrayBuffer());
+}
+
 export function exportTools(client: VizcomClient): ToolDefinition[] {
   return [
     {
@@ -73,6 +82,47 @@ export function exportTools(client: VizcomClient): ToolDefinition[] {
           input: { workbench: { folderId, name } },
         });
         return data.createWorkbench.workbench;
+      },
+    },
+    {
+      name: 'create_drawing',
+      description: `Create a new drawing on a workbench from a generated image.
+After using modify_image or render_sketch, use this tool to place the output
+as a new drawing on the workbench — this is how users normally save results in Vizcom.`,
+      inputSchema: z.object({
+        workbenchId: z.string().uuid().describe('Workbench ID to place the drawing on'),
+        imagePath: z.string().describe('Image path from a generation output (e.g. from modify_image or render_sketch results)'),
+        width: z.number().optional().default(1024).describe('Drawing width in pixels'),
+        height: z.number().optional().default(1024).describe('Drawing height in pixels'),
+        name: z.string().optional().describe('Name for the drawing'),
+      }),
+      handler: async ({ workbenchId, imagePath, width, height, name }) => {
+        const imageBuffer = await fetchImageBuffer(imagePath as string);
+
+        const files = new Map<string, { buffer: Buffer; filename: string; mimetype: string }>();
+        files.set('variables.input.0.image', {
+          buffer: imageBuffer,
+          filename: 'output.png',
+          mimetype: 'image/png',
+        });
+
+        const data = await client.mutationWithUpload<{
+          createDrawings: {
+            drawings: Array<{ id: string; name: string; width: number; height: number }>;
+          };
+        }>(QUERIES.CreateDrawings, {
+          input: [{
+            workbenchId,
+            width: width ?? 1024,
+            height: height ?? 1024,
+            backgroundColor: '#FFFFFF',
+            backgroundVisible: true,
+            image: null,
+            ...(name ? { name } : {}),
+          }],
+        }, files);
+
+        return data.createDrawings.drawings[0];
       },
     },
   ];

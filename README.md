@@ -81,9 +81,11 @@ If you prefer environment variables over the login command:
 > **Note:** Vizcom is image-to-image — you always need a source image (sketch, photo, or blank canvas) to get started. Open a workbench in Vizcom, draw a sketch or import an image, then use these tools.
 
 - **modify_image** — Modify an existing image with a text prompt (supports masks and pro quality)
-- **render_sketch** — Turn a sketch into a photorealistic render
+- **render_sketch** — Turn a sketch into a photorealistic render (requires a style, defaults to "generalV2")
+- **list_styles** — List available rendering styles
 
 ### Utility
 - **get_generation_status** — Check on an in-progress generation
 - **export_image** — Get the URL for a generated image
 - **create_workbench** — Create a new workbench
+- **create_drawing** — Place a generated image as a new drawing on a workbench

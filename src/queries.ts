@@ -15,4 +15,5 @@ export const QUERIES = {
   CreatePrompt: '0cc4dab3daf35f26e7e5b465d1e331571d88080188344b9c2ebcc0ae69d525d8',
   prompt: 'b4cce795880973b37db38b620805a648b062c21b8da181988f19feaeef615c7a',
   CreateWorkbench: 'f8a465f759e3f698fc3e32f6743c135dc4e1a579ea35e12efbebd9b06e4bd1e5',
+  CreateDrawings: '92e3f0bd088f500e81f29656dfabf2e5d73ef2cbe9a689e64f68d7f10805a171',
 } as const;
