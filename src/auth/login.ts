@@ -84,7 +84,7 @@ export async function runLoginCli() {
       result.organizations.forEach((org, i) => {
         console.log(`  ${i + 1}. ${org.name}`);
       });
-      const choice = await rl.question('Choice: ');
+      const choice = await rl.question(`Enter a number (1-${result.organizations.length}): `);
       const idx = parseInt(choice, 10) - 1;
       if (idx < 0 || idx >= result.organizations.length) {
         console.error('Invalid choice.');
