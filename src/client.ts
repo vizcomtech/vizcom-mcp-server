@@ -45,7 +45,13 @@ export class VizcomClient {
       body: JSON.stringify(persistedBody(hash, variables)),
     });
 
-    const result = (await response.json()) as GraphQLResponse<T>;
+    const text = await response.text();
+    let result: GraphQLResponse<T>;
+    try {
+      result = JSON.parse(text) as GraphQLResponse<T>;
+    } catch {
+      throw new Error(`API returned non-JSON (HTTP ${response.status}): ${text.slice(0, 200)}`);
+    }
 
     if (result.errors?.length) {
       const msg = result.errors.map((e) => e.message).join(', ');
@@ -96,7 +102,13 @@ export class VizcomClient {
       body: formData,
     });
 
-    const result = (await response.json()) as GraphQLResponse<T>;
+    const text = await response.text();
+    let result: GraphQLResponse<T>;
+    try {
+      result = JSON.parse(text) as GraphQLResponse<T>;
+    } catch {
+      throw new Error(`API returned non-JSON (HTTP ${response.status}): ${text.slice(0, 200)}`);
+    }
 
     if (result.errors?.length) {
       const msg = result.errors.map((e) => e.message).join(', ');
