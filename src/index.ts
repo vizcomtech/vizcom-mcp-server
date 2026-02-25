@@ -15,7 +15,7 @@ function getCredentialsOrExit() {
   // Check for env var override first (for CI / advanced users)
   if (process.env.VIZCOM_AUTH_TOKEN && process.env.VIZCOM_ORGANIZATION_ID) {
     return {
-      apiUrl: process.env.VIZCOM_API_URL ?? 'https://app.vizcom.ai/api/v1',
+      apiUrl: process.env.VIZCOM_API_URL ?? 'https://app.vizcom.com/api/v1',
       authToken: process.env.VIZCOM_AUTH_TOKEN,
       organizationId: process.env.VIZCOM_ORGANIZATION_ID,
     };

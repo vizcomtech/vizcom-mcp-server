@@ -69,7 +69,7 @@ export async function loginWithCredentials(
 }
 
 export async function runLoginCli() {
-  const apiUrl = process.env.VIZCOM_API_URL ?? 'https://app.vizcom.ai/api/v1';
+  const apiUrl = process.env.VIZCOM_API_URL ?? 'https://app.vizcom.com/api/v1';
   const rl = readline.createInterface({ input: stdin, output: stdout });
 
   try {
@@ -115,7 +115,7 @@ export async function runLoginCli() {
     if (error instanceof Error && error.message.includes('password')) {
       console.error(`\n✗ ${error.message}`);
       console.error('\nIf you signed up with Google/SSO, set a password first:');
-      console.error('  1. Go to https://app.vizcom.ai/forgot-password');
+      console.error('  1. Go to https://app.vizcom.com/forgot-password');
       console.error('  2. Enter your email to receive a reset link');
       console.error('  3. Set a password, then run this command again');
     } else {

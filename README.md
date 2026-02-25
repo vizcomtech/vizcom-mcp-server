@@ -13,7 +13,7 @@ npx @vizcom/mcp-server login
 You'll be prompted for your email and password. That's it — your credentials are saved locally.
 
 > **Signed up with Google/SSO?** You'll need to set a password first:
-> go to https://app.vizcom.ai/forgot-password, enter your email, and set a password.
+> go to https://app.vizcom.com/forgot-password, enter your email, and set a password.
 
 ### Step 2: Add it to Claude
 
@@ -60,7 +60,7 @@ If you prefer environment variables over the login command:
       "env": {
         "VIZCOM_AUTH_TOKEN": "<your-jwt>",
         "VIZCOM_ORGANIZATION_ID": "<your-org-id>",
-        "VIZCOM_API_URL": "https://app.vizcom.ai/api/v1"
+        "VIZCOM_API_URL": "https://app.vizcom.com/api/v1"
       }
     }
   }
