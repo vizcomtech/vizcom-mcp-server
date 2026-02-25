@@ -70,7 +70,7 @@ export class VizcomClient {
     for (const [, file] of files) {
       formData.append(
         String(index),
-        new Blob([file.buffer], { type: file.mimetype }),
+        new Blob([new Uint8Array(file.buffer)], { type: file.mimetype }),
         file.filename
       );
       index++;
