@@ -7,7 +7,6 @@ import { loadCredentials } from './auth/credentials.js';
 import { browseTools } from './tools/browse.js';
 import { modifyTools } from './tools/modify.js';
 import { renderTools } from './tools/render.js';
-import { generateTools } from './tools/generate.js';
 import { exportTools } from './tools/export.js';
 import type { ToolDefinition } from './types.js';
 
@@ -56,7 +55,6 @@ async function main() {
     ...browseTools(client),
     ...modifyTools(client),
     ...renderTools(client),
-    ...generateTools(client),
     ...exportTools(client),
   ];
 

@@ -11,7 +11,10 @@ export function renderTools(client: VizcomClient): ToolDefinition[] {
       name: 'render_sketch',
       description: `Turn a sketch into a photorealistic rendered visualization.
 Provide a source sketch image and a text prompt describing the desired look.
-Use influenceLevel to control how closely the output follows the sketch (0 = loose, 1 = strict).`,
+Use influenceLevel to control how closely the output follows the sketch (0 = loose, 1 = strict).
+
+IMPORTANT: A source image is always required. Start with a sketch or photo in Vizcom,
+then use this tool to render it into a realistic visualization.`,
       inputSchema: z.object({
         drawingId: z.string().uuid().describe('Drawing ID to render into'),
         prompt: z.string().describe('Description of the desired render'),

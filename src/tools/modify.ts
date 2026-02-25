@@ -12,7 +12,11 @@ export function modifyTools(client: VizcomClient): ToolDefinition[] {
       description: `Modify an existing image using AI. Describe the changes you want in the prompt.
 Optionally provide a mask (base64 PNG where white = area to change) for targeted edits.
 Supports "standard" and "pro" quality modes (pro requires a paid plan).
-This is Vizcom's most-used feature — use it for iterating on designs.`,
+This is Vizcom's most-used feature — use it for iterating on designs.
+
+IMPORTANT: Vizcom is image-to-image only. You always need a source image — a sketch, a photo,
+or even a blank white canvas. To start from scratch, create a workbench in the Vizcom UI and
+draw a quick sketch or import an image, then use this tool to transform it.`,
       inputSchema: z.object({
         drawingId: z.string().uuid().describe('Drawing ID to modify'),
         prompt: z.string().describe('Description of the changes to make'),

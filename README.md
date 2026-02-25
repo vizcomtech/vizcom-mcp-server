@@ -45,7 +45,7 @@ Open a new conversation and ask things like:
 - "Show me my Vizcom workbenches"
 - "Render this sketch as a modern desk lamp in white ceramic"
 - "Modify this design — make the handle more ergonomic"
-- "Generate 4 concept variations of a minimalist desk lamp"
+- "Modify this render — try 4 different color options"
 
 ## Advanced Setup
 
@@ -77,9 +77,11 @@ If you prefer environment variables over the login command:
 - **get_drawing** — Get drawing layers and generation history
 
 ### Creative
+
+> **Note:** Vizcom is image-to-image — you always need a source image (sketch, photo, or blank canvas) to get started. Open a workbench in Vizcom, draw a sketch or import an image, then use these tools.
+
 - **modify_image** — Modify an existing image with a text prompt (supports masks and pro quality)
 - **render_sketch** — Turn a sketch into a photorealistic render
-- **generate_image** — Generate an image from text alone
 
 ### Utility
 - **get_generation_status** — Check on an in-progress generation
