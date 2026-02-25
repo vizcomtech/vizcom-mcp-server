@@ -3,15 +3,7 @@ import { randomUUID } from 'node:crypto';
 import type { VizcomClient } from '../client.js';
 import type { ToolDefinition } from '../types.js';
 import { pollForResult } from '../utils/polling.js';
-
-const CREATE_EDIT_PROMPT = `
-  mutation CreateEditPrompt($input: CreateEditPromptInput!) {
-    createEditPrompt(input: $input) {
-      prompt { id }
-      usageData { left used planLimit }
-    }
-  }
-`;
+import { QUERIES } from '../queries.js';
 
 export function modifyTools(client: VizcomClient): ToolDefinition[] {
   return [
@@ -70,7 +62,7 @@ This is Vizcom's most-used feature — use it for iterating on designs.`,
 
         await client.mutationWithUpload<{
           createEditPrompt: { prompt: { id: string } };
-        }>(CREATE_EDIT_PROMPT, variables, files);
+        }>(QUERIES.CreateEditPrompt, variables, files);
 
         return await pollForResult(client, promptId);
       },

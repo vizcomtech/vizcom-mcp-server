@@ -9,6 +9,17 @@ interface GraphQLResponse<T = unknown> {
   errors?: Array<{ message: string; extensions?: Record<string, unknown> }>;
 }
 
+function persistedBody(
+  sha256Hash: string,
+  variables?: Record<string, unknown>
+) {
+  return {
+    extensions: { persistedQuery: { sha256Hash } },
+    query: '',
+    variables: variables ?? {},
+  };
+}
+
 export class VizcomClient {
   private config: VizcomClientConfig;
 
@@ -21,7 +32,7 @@ export class VizcomClient {
   }
 
   async query<T = unknown>(
-    query: string,
+    hash: string,
     variables?: Record<string, unknown>
   ): Promise<T> {
     const response = await fetch(`${this.config.apiUrl}/graphql`, {
@@ -31,7 +42,7 @@ export class VizcomClient {
         Authorization: `Bearer ${this.config.authToken}`,
         'x-organization-id': this.config.organizationId,
       },
-      body: JSON.stringify({ query, variables }),
+      body: JSON.stringify(persistedBody(hash, variables)),
     });
 
     const result = (await response.json()) as GraphQLResponse<T>;
@@ -49,13 +60,13 @@ export class VizcomClient {
   }
 
   async mutationWithUpload<T = unknown>(
-    query: string,
+    hash: string,
     variables: Record<string, unknown>,
     files: Map<string, { buffer: Buffer; filename: string; mimetype: string }>
   ): Promise<T> {
     const formData = new FormData();
 
-    const operations = JSON.stringify({ query, variables });
+    const operations = JSON.stringify(persistedBody(hash, variables));
     formData.append('operations', operations);
 
     const fileMap: Record<string, string[]> = {};

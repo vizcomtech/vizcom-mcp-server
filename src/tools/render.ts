@@ -3,15 +3,7 @@ import { randomUUID } from 'node:crypto';
 import type { VizcomClient } from '../client.js';
 import type { ToolDefinition } from '../types.js';
 import { pollForResult } from '../utils/polling.js';
-
-const CREATE_PROMPT = `
-  mutation CreatePrompt($input: CreatePromptInput!) {
-    createPrompt(input: $input) {
-      prompt { id }
-      usageData { left used planLimit }
-    }
-  }
-`;
+import { QUERIES } from '../queries.js';
 
 export function renderTools(client: VizcomClient): ToolDefinition[] {
   return [
@@ -46,7 +38,7 @@ Use influenceLevel to control how closely the output follows the sketch (0 = loo
 
         await client.mutationWithUpload<{
           createPrompt: { prompt: { id: string } };
-        }>(CREATE_PROMPT, {
+        }>(QUERIES.CreatePrompt, {
           input: {
             id: promptId,
             drawingId,

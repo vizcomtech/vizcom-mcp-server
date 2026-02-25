@@ -1,25 +1,10 @@
 import type { VizcomClient } from '../client.js';
-
-const POLL_QUERY = `
-  query GetPromptStatus($id: UUID!) {
-    prompt(id: $id) {
-      id
-      status
-      promptOutputs(first: 10) {
-        nodes {
-          id
-          imagePath
-          failureReason
-        }
-      }
-    }
-  }
-`;
+import { QUERIES } from '../queries.js';
 
 interface PromptOutput {
   id: string;
-  imagePath?: string;
-  failureReason?: string;
+  imagePath?: string | null;
+  failureReason?: string | null;
 }
 
 interface PollResult {
@@ -45,25 +30,31 @@ export async function pollForResult(
     const data = await client.query<{
       prompt: {
         id: string;
-        status: string;
-        promptOutputs: { nodes: PromptOutput[] };
+        outputs: {
+          nodes: Array<{
+            id: string;
+            imagePath: string | null;
+            failureReason: string | null;
+          }>;
+        };
       };
-    }>(POLL_QUERY, { id: promptId });
+    }>(QUERIES.prompt, { id: promptId });
 
     const { prompt } = data;
+    const outputs = prompt.outputs.nodes;
 
-    if (prompt.status === 'completed') {
+    const failed = outputs.find((o) => o.failureReason);
+    if (failed) {
+      throw new Error(failed.failureReason ?? 'Generation failed');
+    }
+
+    const completed = outputs.filter((o) => o.imagePath);
+    if (completed.length > 0) {
       return {
         promptId: prompt.id,
         status: 'completed',
-        outputs: prompt.promptOutputs.nodes,
+        outputs,
       };
-    }
-
-    if (prompt.status === 'failed') {
-      const reason =
-        prompt.promptOutputs.nodes[0]?.failureReason ?? 'Generation failed';
-      throw new Error(reason);
     }
 
     if (i < maxAttempts - 1) {

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { VizcomClient } from '../client.js';
 import type { ToolDefinition } from '../types.js';
+import { QUERIES } from '../queries.js';
 
 export function exportTools(client: VizcomClient): ToolDefinition[] {
   return [
@@ -15,8 +16,7 @@ export function exportTools(client: VizcomClient): ToolDefinition[] {
         const data = await client.query<{
           prompt: {
             id: string;
-            status: string;
-            promptOutputs: {
+            outputs: {
               nodes: Array<{
                 id: string;
                 imagePath: string | null;
@@ -24,16 +24,18 @@ export function exportTools(client: VizcomClient): ToolDefinition[] {
               }>;
             };
           };
-        }>(
-          `query GetPromptStatus($id: UUID!) {
-            prompt(id: $id) {
-              id status
-              promptOutputs { nodes { id imagePath failureReason } }
-            }
-          }`,
-          { id: promptId }
-        );
-        return data.prompt;
+        }>(QUERIES.prompt, { id: promptId });
+
+        const outputs = data.prompt.outputs.nodes;
+        const failed = outputs.find((o) => o.failureReason);
+        const completed = outputs.filter((o) => o.imagePath);
+
+        let status: string;
+        if (failed) status = 'failed';
+        else if (completed.length > 0) status = 'completed';
+        else status = 'processing';
+
+        return { id: data.prompt.id, status, outputs };
       },
     },
     {
@@ -67,14 +69,9 @@ export function exportTools(client: VizcomClient): ToolDefinition[] {
           createWorkbench: {
             workbench: { id: string; name: string };
           };
-        }>(
-          `mutation CreateWorkbench($input: CreateWorkbenchInput!) {
-            createWorkbench(input: $input) {
-              workbench { id name }
-            }
-          }`,
-          { input: { workbench: { folderId, name } } }
-        );
+        }>(QUERIES.CreateWorkbench, {
+          input: { workbench: { folderId, name } },
+        });
         return data.createWorkbench.workbench;
       },
     },

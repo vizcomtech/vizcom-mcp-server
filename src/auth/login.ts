@@ -1,6 +1,7 @@
 import * as readline from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
 import { saveCredentials } from './credentials.js';
+import { QUERIES } from '../queries.js';
 
 interface LoginResult {
   authToken: string;
@@ -18,19 +19,8 @@ export async function loginWithCredentials(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      query: `
-        mutation Login($input: LoginInput!) {
-          login(input: $input) {
-            authToken
-            user {
-              id
-              email
-              name
-              organizations { nodes { id name } }
-            }
-          }
-        }
-      `,
+      extensions: { persistedQuery: { sha256Hash: QUERIES.login } },
+      query: '',
       variables: { input: { email, password } },
     }),
   });
@@ -43,7 +33,9 @@ export async function loginWithCredentials(
           id: string;
           email: string;
           name: string;
-          organizations: { nodes: Array<{ id: string; name: string }> };
+          organizations: {
+            edges: Array<{ node: { id: string; name: string } }>;
+          };
         };
       };
     };
@@ -64,7 +56,7 @@ export async function loginWithCredentials(
     authToken,
     userId: user.id,
     email: user.email,
-    organizations: user.organizations.nodes,
+    organizations: user.organizations.edges.map((e) => e.node),
   };
 }
 
@@ -112,20 +104,25 @@ export async function runLoginCli() {
     console.log(`\n✓ Logged in as ${result.email}`);
     console.log('Credentials saved to ~/.vizcom/credentials.json');
   } catch (error) {
-    if (error instanceof Error && error.message.includes('password')) {
-      console.error(`\n✗ ${error.message}`);
-      console.error('\nIf you signed up with Google/SSO, set a password first:');
-      console.error('  1. Go to https://app.vizcom.com/forgot-password');
-      console.error('  2. Enter your email to receive a reset link');
-      console.error('  3. Set a password, then run this command again');
-    } else {
-      console.error(`\nLogin failed: ${error instanceof Error ? error.message : error}`);
-    }
-    process.exit(1);
-  } finally {
     rl.close();
+    if (error instanceof Error && error.message.includes('password')) {
+      process.stderr.write(`\n✗ ${error.message}\n`);
+      process.stderr.write('\nIf you signed up with Google/SSO, set a password first:\n');
+      process.stderr.write('  1. Go to https://app.vizcom.com/forgot-password\n');
+      process.stderr.write('  2. Enter your email to receive a reset link\n');
+      process.stderr.write('  3. Set a password, then run this command again\n');
+    } else {
+      const msg = error instanceof Error ? error.message : String(error);
+      process.stderr.write(`\nLogin failed: ${msg}\n`);
+    }
+    process.exitCode = 1;
+    return;
   }
+  rl.close();
 }
 
-// Run when invoked directly
-runLoginCli();
+// Run when invoked directly (not via import from index.ts)
+const isDirectRun = process.argv[1]?.endsWith('/auth/login.js');
+if (isDirectRun) {
+  runLoginCli();
+}

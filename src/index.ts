@@ -33,7 +33,7 @@ function getCredentialsOrExit() {
 
 // Handle login subcommand
 if (process.argv[2] === 'login') {
-  import('./auth/login.js').then((m) => m.runLoginCli());
+  import('./auth/login.js').then((m) => m.runLoginCli()).catch(() => process.exit(1));
 } else {
   main();
 }

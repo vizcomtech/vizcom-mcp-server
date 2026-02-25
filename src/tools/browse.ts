@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { VizcomClient } from '../client.js';
 import type { ToolDefinition } from '../types.js';
+import { QUERIES } from '../queries.js';
 
 export function browseTools(client: VizcomClient): ToolDefinition[] {
   return [
@@ -10,16 +11,22 @@ export function browseTools(client: VizcomClient): ToolDefinition[] {
       inputSchema: z.object({}),
       handler: async () => {
         const data = await client.query<{
-          viewer: {
+          currentUser: {
             id: string;
             email: string;
             name: string;
             organizations: {
-              nodes: Array<{ id: string; name: string }>;
+              edges: Array<{ node: { id: string; name: string } }>;
             };
           };
-        }>(`query { viewer { id email name organizations { nodes { id name } } } }`);
-        return data.viewer;
+        }>(QUERIES.currentUser);
+        const user = data.currentUser;
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          organizations: user.organizations.edges.map((e) => e.node),
+        };
       },
     },
     {
@@ -28,15 +35,17 @@ export function browseTools(client: VizcomClient): ToolDefinition[] {
       inputSchema: z.object({}),
       handler: async () => {
         const data = await client.query<{
-          teams: {
-            nodes: Array<{
-              id: string;
-              name: string;
-              rootFolder: { id: string } | null;
-            }>;
+          organization: {
+            teams: {
+              nodes: Array<{
+                id: string;
+                name: string;
+                rootFolder: { id: string } | null;
+              }>;
+            };
           };
-        }>(`query { teams { nodes { id name rootFolder { id } } } }`);
-        return data.teams.nodes;
+        }>(QUERIES.organizationTeams, { id: client.organizationId });
+        return data.organization.teams.nodes;
       },
     },
     {
@@ -47,13 +56,17 @@ export function browseTools(client: VizcomClient): ToolDefinition[] {
         folderId: z.string().uuid().describe('Folder ID to browse'),
       }),
       handler: async ({ folderId }) => {
-        const data = await client.query<{
-          folder: {
-            id: string;
-            name: string;
-            childFolders: {
-              nodes: Array<{ id: string; name: string }>;
+        const [folderData, wbData] = await Promise.all([
+          client.query<{
+            folder: {
+              id: string;
+              name: string;
+              childFolders: {
+                nodes: Array<{ id: string; name: string }>;
+              };
             };
+          }>(QUERIES.folder, { id: folderId }),
+          client.query<{
             workbenches: {
               nodes: Array<{
                 id: string;
@@ -61,18 +74,14 @@ export function browseTools(client: VizcomClient): ToolDefinition[] {
                 updatedAt: string;
               }>;
             };
-          };
-        }>(
-          `query ListFolders($id: UUID!) {
-            folder(id: $id) {
-              id name
-              childFolders { nodes { id name } }
-              workbenches(orderBy: UPDATED_AT_DESC) { nodes { id name updatedAt } }
-            }
-          }`,
-          { id: folderId }
-        );
-        return data.folder;
+          }>(QUERIES.workbenchesByFolderId, { id: folderId }),
+        ]);
+        return {
+          id: folderData.folder.id,
+          name: folderData.folder.name,
+          childFolders: folderData.folder.childFolders.nodes,
+          workbenches: wbData.workbenches.nodes,
+        };
       },
     },
     {
@@ -89,19 +98,28 @@ export function browseTools(client: VizcomClient): ToolDefinition[] {
             createdAt: string;
             updatedAt: string;
             drawings: {
-              nodes: Array<{ id: string; name: string; width: number; height: number }>;
+              nodes: Array<{
+                id: string;
+                name: string;
+                drawingWidth: number;
+                drawingHeight: number;
+              }>;
             };
           };
-        }>(
-          `query GetWorkbench($id: UUID!) {
-            workbench(id: $id) {
-              id name createdAt updatedAt
-              drawings { nodes { id name width height } }
-            }
-          }`,
-          { id: workbenchId }
-        );
-        return data.workbench;
+        }>(QUERIES.workbenchContent, { id: workbenchId });
+        const wb = data.workbench;
+        return {
+          id: wb.id,
+          name: wb.name,
+          createdAt: wb.createdAt,
+          updatedAt: wb.updatedAt,
+          drawings: wb.drawings.nodes.map((d) => ({
+            id: d.id,
+            name: d.name,
+            width: d.drawingWidth,
+            height: d.drawingHeight,
+          })),
+        };
       },
     },
     {
@@ -129,25 +147,20 @@ export function browseTools(client: VizcomClient): ToolDefinition[] {
             prompts: {
               nodes: Array<{
                 id: string;
-                prompt: string;
-                status: string;
+                text: string;
                 imageInferenceType: string;
                 createdAt: string;
+                outputs: {
+                  nodes: Array<{
+                    id: string;
+                    imagePath: string | null;
+                    failureReason: string | null;
+                  }>;
+                };
               }>;
             };
           };
-        }>(
-          `query GetDrawing($id: UUID!) {
-            drawing(id: $id) {
-              id name width height
-              layers { nodes { id name imagePath visible } }
-              prompts(first: 10, orderBy: CREATED_AT_DESC) {
-                nodes { id prompt status imageInferenceType createdAt }
-              }
-            }
-          }`,
-          { id: drawingId }
-        );
+        }>(QUERIES.drawingById, { id: drawingId });
         return data.drawing;
       },
     },

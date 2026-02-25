@@ -3,15 +3,7 @@ import { randomUUID } from 'node:crypto';
 import type { VizcomClient } from '../client.js';
 import type { ToolDefinition } from '../types.js';
 import { pollForResult } from '../utils/polling.js';
-
-const CREATE_PROMPT = `
-  mutation CreatePrompt($input: CreatePromptInput!) {
-    createPrompt(input: $input) {
-      prompt { id }
-      usageData { left used planLimit }
-    }
-  }
-`;
+import { QUERIES } from '../queries.js';
 
 export function generateTools(client: VizcomClient): ToolDefinition[] {
   return [
@@ -27,10 +19,9 @@ Use this for early ideation and concept exploration.`,
       handler: async ({ drawingId, prompt, outputsCount }) => {
         const promptId = randomUUID();
 
-        // Note: generate_image doesn't have a source image, so we use query() not mutationWithUpload()
         await client.query<{
           createPrompt: { prompt: { id: string } };
-        }>(CREATE_PROMPT, {
+        }>(QUERIES.CreatePrompt, {
           input: {
             id: promptId,
             drawingId,
