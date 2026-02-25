@@ -2,15 +2,7 @@ import { z } from 'zod';
 import type { VizcomClient } from '../client.js';
 import type { ToolDefinition } from '../types.js';
 import { QUERIES } from '../queries.js';
-
-async function fetchImageBuffer(imagePath: string): Promise<Buffer> {
-  const url = imagePath.startsWith('http')
-    ? imagePath
-    : `https://storage.vizcom.ai/${imagePath}`;
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`);
-  return Buffer.from(await response.arrayBuffer());
-}
+import { toImageUrl, fetchImageAsBase64, fetchImageBuffer } from '../utils/storage.js';
 
 export function exportTools(client: VizcomClient): ToolDefinition[] {
   return [
@@ -44,23 +36,76 @@ export function exportTools(client: VizcomClient): ToolDefinition[] {
         else if (completed.length > 0) status = 'completed';
         else status = 'processing';
 
-        return { id: data.prompt.id, status, outputs };
+        return {
+          id: data.prompt.id,
+          status,
+          outputs: outputs.map((o) => ({
+            ...o,
+            imageUrl: o.imagePath ? toImageUrl(o.imagePath) : null,
+          })),
+        };
       },
     },
     {
       name: 'export_image',
       description:
-        'Get the full URL for a generated image. Pass the imagePath from a generation result.',
+        'Get the full CDN URL for an image. Pass the imagePath from any result.',
       inputSchema: z.object({
         imagePath: z
           .string()
-          .describe('Image storage path from a generation result'),
+          .describe('Image storage path from a generation result or layer'),
       }),
       handler: async ({ imagePath }) => {
-        const url = (imagePath as string).startsWith('http')
-          ? imagePath
-          : `https://storage.vizcom.ai/${imagePath}`;
-        return { url, imagePath };
+        return { url: toImageUrl(imagePath as string), imagePath };
+      },
+    },
+    {
+      name: 'get_drawing_image',
+      description: `Download a drawing's image as base64. Use this to get the current state of a drawing
+so you can pass it to modify_image or render_sketch for iteration.
+Returns the image from the top visible layer of the drawing.`,
+      inputSchema: z.object({
+        drawingId: z.string().uuid().describe('Drawing ID to get the image from'),
+      }),
+      handler: async ({ drawingId }) => {
+        const data = await client.query<{
+          drawing: {
+            id: string;
+            name: string;
+            width: number;
+            height: number;
+            thumbnailPath: string | null;
+            layers: {
+              nodes: Array<{
+                id: string;
+                name: string;
+                imagePath: string | null;
+                visible: boolean;
+              }>;
+            };
+          };
+        }>(QUERIES.drawingById, { id: drawingId });
+
+        const drawing = data.drawing;
+        const visibleLayer = drawing.layers.nodes.find(
+          (l) => l.visible && l.imagePath
+        );
+
+        const imagePath = visibleLayer?.imagePath ?? drawing.thumbnailPath;
+        if (!imagePath) {
+          throw new Error('Drawing has no image — it may be empty. Draw a sketch or import an image in the Vizcom UI first.');
+        }
+
+        const base64 = await fetchImageAsBase64(imagePath);
+
+        return {
+          drawingId: drawing.id,
+          name: drawing.name,
+          width: drawing.width,
+          height: drawing.height,
+          imageUrl: toImageUrl(imagePath),
+          imageBase64: base64,
+        };
       },
     },
     {
@@ -86,29 +131,40 @@ export function exportTools(client: VizcomClient): ToolDefinition[] {
     },
     {
       name: 'create_drawing',
-      description: `Create a new drawing on a workbench from a generated image.
-After using modify_image or render_sketch, use this tool to place the output
-as a new drawing on the workbench — this is how users normally save results in Vizcom.`,
+      description: `Create a new drawing on a workbench from an image.
+Use this to either:
+- Place a generated result (pass imagePath from modify_image/render_sketch output)
+- Upload a new sketch or photo to start working with (pass imageBase64)
+This is how users normally save results and start new work in Vizcom.`,
       inputSchema: z.object({
         workbenchId: z.string().uuid().describe('Workbench ID to place the drawing on'),
-        imagePath: z.string().describe('Image path from a generation output (e.g. from modify_image or render_sketch results)'),
+        imagePath: z.string().optional().describe('Storage path from a generation output'),
+        imageBase64: z.string().optional().describe('Base64-encoded image to upload (PNG/JPEG)'),
         width: z.number().optional().default(1024).describe('Drawing width in pixels'),
         height: z.number().optional().default(1024).describe('Drawing height in pixels'),
         name: z.string().optional().describe('Name for the drawing'),
       }),
-      handler: async ({ workbenchId, imagePath, width, height, name }) => {
-        const imageBuffer = await fetchImageBuffer(imagePath as string);
+      handler: async ({ workbenchId, imagePath, imageBase64, width, height, name }) => {
+        let imageBuffer: Buffer;
+
+        if (imageBase64) {
+          imageBuffer = Buffer.from(imageBase64 as string, 'base64');
+        } else if (imagePath) {
+          imageBuffer = await fetchImageBuffer(imagePath as string);
+        } else {
+          throw new Error('Provide either imagePath (from a generation result) or imageBase64 (raw image data)');
+        }
 
         const files = new Map<string, { buffer: Buffer; filename: string; mimetype: string }>();
         files.set('variables.input.0.image', {
           buffer: imageBuffer,
-          filename: 'output.png',
+          filename: 'image.png',
           mimetype: 'image/png',
         });
 
         const data = await client.mutationWithUpload<{
           createDrawings: {
-            drawings: Array<{ id: string; name: string; width: number; height: number }>;
+            drawings: Array<{ id: string; name: string }>;
           };
         }>(QUERIES.CreateDrawings, {
           input: [{

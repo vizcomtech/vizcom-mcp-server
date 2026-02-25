@@ -1,10 +1,12 @@
 import type { VizcomClient } from '../client.js';
 import { QUERIES } from '../queries.js';
+import { toImageUrl } from './storage.js';
 
 interface PromptOutput {
   id: string;
-  imagePath?: string | null;
-  failureReason?: string | null;
+  imagePath: string | null;
+  imageUrl: string | null;
+  failureReason: string | null;
 }
 
 interface PollResult {
@@ -53,7 +55,10 @@ export async function pollForResult(
       return {
         promptId: prompt.id,
         status: 'completed',
-        outputs,
+        outputs: outputs.map((o) => ({
+          ...o,
+          imageUrl: o.imagePath ? toImageUrl(o.imagePath) : null,
+        })),
       };
     }
 
