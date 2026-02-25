@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import type { VizcomClient } from '../client.js';
 import type { ToolDefinition } from '../types.js';
 import { pollForResult } from '../utils/polling.js';
+import { placeOutputAsDrawing } from '../utils/place-result.js';
 import { QUERIES } from '../queries.js';
 
 const PUBLIC_STYLES = [
@@ -79,7 +80,16 @@ then use this tool to render it into a realistic visualization.`,
           },
         }, files);
 
-        return await pollForResult(client, promptId);
+        const result = await pollForResult(client, promptId);
+
+        // Auto-place each output as a new drawing on the workbench
+        const placed = [];
+        for (const output of result.outputs) {
+          const drawing = await placeOutputAsDrawing(client, drawingId as string, output);
+          if (drawing) placed.push(drawing);
+        }
+
+        return { ...result, placedDrawings: placed };
       },
     },
     {
