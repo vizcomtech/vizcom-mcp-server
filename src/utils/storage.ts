@@ -23,6 +23,24 @@ export async function fetchImageBuffer(path: string): Promise<Buffer> {
   return Buffer.from(await response.arrayBuffer());
 }
 
+export async function pollCdnForFile(
+  path: string,
+  intervalMs = 3000,
+  maxAttempts = 80
+): Promise<string> {
+  const url = toImageUrl(path);
+  for (let i = 0; i < maxAttempts; i++) {
+    const response = await fetch(url, { method: 'HEAD' });
+    if (response.ok) return url;
+    if (i < maxAttempts - 1) {
+      await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    }
+  }
+  throw new Error(
+    `File not available after ${(maxAttempts * intervalMs) / 1000}s. It may still be processing — try export_image or export_3d_model with the path later.`
+  );
+}
+
 /**
  * Fetch the source image for a drawing server-side.
  * Returns the image buffer from the top visible layer (or thumbnail fallback).

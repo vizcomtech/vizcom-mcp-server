@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import type { VizcomClient } from '../client.js';
 import type { ToolDefinition } from '../types.js';
 import { QUERIES } from '../queries.js';
-import { toImageUrl, fetchDrawingImageBuffer } from '../utils/storage.js';
+import { toImageUrl, fetchDrawingImageBuffer, pollCdnForFile } from '../utils/storage.js';
 
 interface LayerNode {
   id: string;
@@ -268,6 +268,62 @@ The URL can be used to download the GLB/FBX file directly.`,
           url: toImageUrl(meshPath as string),
           meshPath,
           format: (meshPath as string).split('.').pop() ?? 'glb',
+        };
+      },
+    },
+    {
+      name: 'convert_mesh_format',
+      description: `Convert a 3D model to a different file format.
+Pass the meshPath from a generate_3d_model or get_3d_status result.
+Supported output formats: FBX, OBJ, STL (3D printing), USDZ (Apple AR).
+Returns the CDN URL of the converted file once ready.`,
+      inputSchema: z.object({
+        drawingId: z.string().uuid().describe('Drawing ID (for authorization)'),
+        meshPath: z.string().describe('Source mesh storage path from a 3D generation result'),
+        outputFormat: z
+          .enum(['FBX', 'OBJ', 'STL', 'USDZ'])
+          .describe('Target format'),
+        quadTopology: z
+          .boolean()
+          .optional()
+          .default(false)
+          .describe('Use quad topology in the output (default: false)'),
+      }),
+      handler: async ({ drawingId, meshPath, outputFormat, quadTopology }) => {
+        const mailboxId = randomUUID();
+
+        const data = await client.query<{
+          MeshConversion: {
+            jobId: string;
+          };
+        }>(QUERIES.MeshConversion, {
+          input: {
+            id: drawingId,
+            meshPath,
+            mailboxId,
+            outputFormat,
+            useQuadTopology: quadTopology ?? false,
+          },
+        });
+
+        const jobId = data.MeshConversion.jobId;
+
+        const extMap: Record<string, string> = {
+          FBX: '.fbx',
+          OBJ: '.obj',
+          STL: '.stl',
+          USDZ: '.usdz',
+        };
+        const ext = extMap[(outputFormat as string)] ?? '.fbx';
+        const outputPath = `meshConvert/${jobId}${ext}`;
+
+        const url = await pollCdnForFile(outputPath);
+
+        return {
+          jobId,
+          url,
+          outputPath,
+          format: outputFormat,
         };
       },
     },

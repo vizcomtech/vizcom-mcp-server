@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import type { VizcomClient } from '../client.js';
 import type { ToolDefinition } from '../types.js';
 import { QUERIES } from '../queries.js';
-import { toImageUrl, fetchImageBuffer } from '../utils/storage.js';
+import { toImageUrl, fetchImageBuffer, fetchDrawingImageBuffer, pollCdnForFile } from '../utils/storage.js';
 
 export function exportTools(client: VizcomClient): ToolDefinition[] {
   return [
@@ -184,6 +184,52 @@ This is how users normally save results and start new work in Vizcom.`,
         }, files);
 
         return data.createDrawings.drawings[0];
+      },
+    },
+    {
+      name: 'upscale_image',
+      description: `Upscale a drawing's image to higher resolution using AI (SeedVR2).
+The source image is fetched automatically from the drawing.
+Supports 2x and 4x upscaling. Max output dimension is 10,000px per side.
+Returns the CDN URL of the upscaled image once ready.`,
+      inputSchema: z.object({
+        drawingId: z.string().uuid().describe('Drawing ID to upscale'),
+        upscaleFactor: z.number().min(2).max(4).optional().default(2).describe('Upscale factor: 2 or 4 (default: 2)'),
+      }),
+      handler: async ({ drawingId, upscaleFactor }) => {
+        const sourceBuffer = await fetchDrawingImageBuffer(client, drawingId as string);
+        const upscaleId = randomUUID();
+
+        const files = new Map<string, { buffer: Buffer; filename: string; mimetype: string }>();
+        files.set('variables.input.image', {
+          buffer: sourceBuffer,
+          filename: 'source.png',
+          mimetype: 'image/png',
+        });
+
+        await client.mutationWithUpload<{
+          upscaleImage: {
+            upscale: { id: string; drawingId: string; sourceImagePath: string | null; upscaledImagePath: string | null };
+          };
+        }>(QUERIES.UpscaleImage, {
+          input: {
+            id: upscaleId,
+            drawingId,
+            image: null,
+            upscaleFactor: upscaleFactor ?? 2,
+          },
+        }, files);
+
+        const outputPath = `upscale/${upscaleId}`;
+        const url = await pollCdnForFile(outputPath);
+
+        return {
+          drawingId,
+          upscaleId,
+          upscaleFactor: upscaleFactor ?? 2,
+          imageUrl: url,
+          imagePath: outputPath,
+        };
       },
     },
     {

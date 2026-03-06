@@ -21,4 +21,5 @@ export const QUERIES = {
   drawingByIdFull: 'f88aacc7f496772d025c9a8068ea8e5e0bf6df4404ec093761559327f2f1b0f7',
   CreateLayer3dFromDrawing: '18fad73c2dd9c66940dd7f1f80dbbe13989593b11a99e9b5a6f437f9d7fa7e09',
   MeshConversion: '0e28d3115ebc55c5ba6979ba8209a9358acc475938b142f1691660e377e080d8',
+  UpscaleImage: '42ae1b4e287c2cedac7939f4d7ed3c18220567bf2e4136f77b3f4b8a757b2207',
 } as const;

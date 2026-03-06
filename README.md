@@ -47,6 +47,8 @@ Open a new conversation and ask things like:
 - "Modify this design — make the handle more ergonomic"
 - "Modify this render — try 4 different color options"
 - "Generate a 3D model from this drawing"
+- "Upscale this render to 4x resolution"
+- "Convert this 3D model to STL for printing"
 
 ## Advanced Setup
 
@@ -88,8 +90,12 @@ If you prefer environment variables over the login command:
 
 ### 3D Models
 - **generate_3d_model** — Generate a 3D model (GLB) from a drawing's image (basic/detailed_sharp/detailed_smooth/max quality)
+- **convert_mesh_format** — Convert a 3D model to FBX, OBJ, STL (3D printing), or USDZ (Apple AR)
 - **get_3d_status** — Check 3D generation progress and get mesh URLs for completed models
 - **export_3d_model** — Get the full CDN URL for a 3D model file
+
+### Enhancement
+- **upscale_image** — AI upscale a drawing's image to 2x or 4x resolution (max 10,000px per side)
 
 ### Utility
 - **get_drawing_image** — Get a drawing's CDN image URL and metadata
