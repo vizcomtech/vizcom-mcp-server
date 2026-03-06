@@ -47,6 +47,7 @@ Open a new conversation and ask things like:
 - "Modify this design — make the handle more ergonomic"
 - "Modify this render — try 4 different color options"
 - "Generate a 3D model from this drawing"
+- "Generate a turntable video of this product"
 - "Upscale this render to 4x resolution"
 - "Convert this 3D model to STL for printing"
 
@@ -87,6 +88,9 @@ If you prefer environment variables over the login command:
 - **render_sketch** — Turn a sketch into a photorealistic render (source image fetched automatically, style defaults to "generalV2")
 - **accept_result** — Apply a generation result to the source drawing (like clicking "Add" in the UI)
 - **list_styles** — List available rendering styles
+
+### Video
+- **generate_video** — Generate a video from a drawing (turntable, motion, animation) using Kling, VEO2/3, or PixVerse
 
 ### 3D Models
 - **generate_3d_model** — Generate a 3D model (GLB) from a drawing's image (basic/detailed_sharp/detailed_smooth/max quality)

@@ -22,4 +22,6 @@ export const QUERIES = {
   CreateLayer3dFromDrawing: '18fad73c2dd9c66940dd7f1f80dbbe13989593b11a99e9b5a6f437f9d7fa7e09',
   MeshConversion: '0e28d3115ebc55c5ba6979ba8209a9358acc475938b142f1691660e377e080d8',
   UpscaleImage: '42ae1b4e287c2cedac7939f4d7ed3c18220567bf2e4136f77b3f4b8a757b2207',
+  CreateWorkbenchElementAnimate: '09649265bc79ac4ea1141a1dd834d4c3ff78caf2c91f318066f281f75f4b232a',
+  TriggerWorkbenchElementAnimate: '92d88e087be3c79289530350193dec8da4eef753859d62b037145e3d20a8b2bc',
 } as const;

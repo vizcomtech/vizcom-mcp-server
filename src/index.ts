@@ -9,6 +9,7 @@ import { modifyTools } from './tools/modify.js';
 import { renderTools } from './tools/render.js';
 import { exportTools } from './tools/export.js';
 import { meshTools } from './tools/mesh.js';
+import { videoTools } from './tools/video.js';
 import type { ToolDefinition } from './types.js';
 
 function getCredentialsOrExit() {
@@ -58,6 +59,7 @@ async function main() {
     ...renderTools(client),
     ...exportTools(client),
     ...meshTools(client),
+    ...videoTools(client),
   ];
 
   for (const tool of allTools) {
