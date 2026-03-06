@@ -8,7 +8,7 @@ describe('loginWithCredentials', () => {
       email: 'test@example.com',
       name: 'Test User',
       organizations: {
-        nodes: [{ id: 'org-123', name: 'Test Org' }],
+        edges: [{ node: { id: 'org-123', name: 'Test Org' } }],
       },
     };
 
@@ -24,7 +24,7 @@ describe('loginWithCredentials', () => {
     } as Response);
 
     const result = await loginWithCredentials(
-      'https://app.vizcom.ai/api/v1',
+      'https://app.vizcom.com/api/v1',
       'test@example.com',
       'password123'
     );
@@ -44,7 +44,7 @@ describe('loginWithCredentials', () => {
 
     await expect(
       loginWithCredentials(
-        'https://app.vizcom.ai/api/v1',
+        'https://app.vizcom.com/api/v1',
         'bad@example.com',
         'wrong'
       )

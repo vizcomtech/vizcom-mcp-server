@@ -8,9 +8,8 @@ describe('pollForResult', () => {
       query: vi.fn().mockResolvedValueOnce({
         prompt: {
           id: 'p-1',
-          status: 'completed',
-          promptOutputs: {
-            nodes: [{ id: 'o-1', imagePath: 'https://cdn.vizcom.ai/image.png' }],
+          outputs: {
+            nodes: [{ id: 'o-1', imagePath: 'renders/image.png', failureReason: null }],
           },
         },
       }),
@@ -18,7 +17,7 @@ describe('pollForResult', () => {
 
     const result = await pollForResult(mockClient, 'p-1');
     expect(result.status).toBe('completed');
-    expect(result.outputs[0].imagePath).toBe('https://cdn.vizcom.ai/image.png');
+    expect(result.outputs[0].imagePath).toBe('renders/image.png');
     expect(mockClient.query).toHaveBeenCalledTimes(1);
   });
 
@@ -26,16 +25,14 @@ describe('pollForResult', () => {
     const pending = {
       prompt: {
         id: 'p-1',
-        status: 'pending',
-        promptOutputs: { nodes: [] },
+        outputs: { nodes: [] },
       },
     };
     const completed = {
       prompt: {
         id: 'p-1',
-        status: 'completed',
-        promptOutputs: {
-          nodes: [{ id: 'o-1', imagePath: 'https://cdn.vizcom.ai/image.png' }],
+        outputs: {
+          nodes: [{ id: 'o-1', imagePath: 'renders/image.png', failureReason: null }],
         },
       },
     };
@@ -61,9 +58,8 @@ describe('pollForResult', () => {
       query: vi.fn().mockResolvedValueOnce({
         prompt: {
           id: 'p-1',
-          status: 'failed',
-          promptOutputs: {
-            nodes: [{ id: 'o-1', failureReason: 'Prompt blocked' }],
+          outputs: {
+            nodes: [{ id: 'o-1', imagePath: null, failureReason: 'Prompt blocked' }],
           },
         },
       }),

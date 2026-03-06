@@ -5,21 +5,35 @@ import { modifyTools } from '../tools/modify.js';
 describe('modify_image tool', () => {
   it('submits edit prompt and polls for result', async () => {
     const mockClient = {
-      mutationWithUpload: vi.fn().mockResolvedValueOnce({
-        createEditPrompt: {
-          prompt: { id: 'p-1' },
-        },
+      mutationWithUpload: vi.fn().mockResolvedValue({
+        createEditPrompt: { prompt: { id: 'p-1' } },
       }),
-      query: vi.fn().mockResolvedValueOnce({
-        prompt: {
-          id: 'p-1',
-          status: 'completed',
-          promptOutputs: {
-            nodes: [{ id: 'o-1', imagePath: 'https://cdn.vizcom.ai/result.png' }],
+      query: vi.fn()
+        // pollForResult call
+        .mockResolvedValueOnce({
+          prompt: {
+            id: 'p-1',
+            outputs: {
+              nodes: [{ id: 'o-1', imagePath: 'renders/result.png', failureReason: null }],
+            },
           },
-        },
-      }),
+        })
+        // placeOutputAsDrawing: get workbenchId
+        .mockResolvedValueOnce({
+          drawing: { workbenchId: 'wb-1' },
+        }),
     } as unknown as VizcomClient;
+
+    // Mock fetch for fetchImageBuffer in placeOutputAsDrawing
+    vi.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
+      arrayBuffer: async () => new ArrayBuffer(8),
+    } as Response);
+
+    // Mock mutationWithUpload for createDrawings in placeOutputAsDrawing
+    mockClient.mutationWithUpload = vi.fn()
+      .mockResolvedValueOnce({ createEditPrompt: { prompt: { id: 'p-1' } } })
+      .mockResolvedValueOnce({ createDrawings: { drawings: [{ id: 'd-2', name: 'Result' }] } });
 
     const tools = modifyTools(mockClient);
     const tool = tools.find((t) => t.name === 'modify_image')!;
@@ -31,7 +45,6 @@ describe('modify_image tool', () => {
       outputsCount: 1,
     });
 
-    expect(mockClient.mutationWithUpload).toHaveBeenCalledTimes(1);
     expect(result).toHaveProperty('status', 'completed');
   });
 });

@@ -6,7 +6,7 @@ describe('VizcomClient', () => {
 
   beforeEach(() => {
     client = new VizcomClient({
-      apiUrl: 'https://app.vizcom.ai/api/v1',
+      apiUrl: 'https://app.vizcom.com/api/v1',
       authToken: 'test-token',
       organizationId: 'test-org-id',
     });
@@ -15,7 +15,8 @@ describe('VizcomClient', () => {
   it('sends GraphQL queries with auth headers', async () => {
     const mockResponse = { data: { viewer: { id: '123' } } };
     vi.spyOn(global, 'fetch').mockResolvedValueOnce({
-      json: async () => mockResponse,
+      text: async () => JSON.stringify(mockResponse),
+      status: 200,
     } as Response);
 
     const result = await client.query<{ viewer: { id: string } }>(
@@ -24,7 +25,7 @@ describe('VizcomClient', () => {
 
     expect(result.viewer.id).toBe('123');
     expect(fetch).toHaveBeenCalledWith(
-      'https://app.vizcom.ai/api/v1/graphql',
+      'https://app.vizcom.com/api/v1/graphql',
       expect.objectContaining({
         method: 'POST',
         headers: expect.objectContaining({
@@ -37,9 +38,10 @@ describe('VizcomClient', () => {
 
   it('throws on GraphQL errors', async () => {
     vi.spyOn(global, 'fetch').mockResolvedValueOnce({
-      json: async () => ({
+      text: async () => JSON.stringify({
         errors: [{ message: 'Not authorized' }],
       }),
+      status: 200,
     } as Response);
 
     await expect(client.query('query { viewer { id } }')).rejects.toThrow(
