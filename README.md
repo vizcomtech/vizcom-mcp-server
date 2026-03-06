@@ -46,6 +46,7 @@ Open a new conversation and ask things like:
 - "Render this sketch as a modern desk lamp in white ceramic"
 - "Modify this design — make the handle more ergonomic"
 - "Modify this render — try 4 different color options"
+- "Generate a 3D model from this drawing"
 
 ## Advanced Setup
 
@@ -84,6 +85,11 @@ If you prefer environment variables over the login command:
 - **render_sketch** — Turn a sketch into a photorealistic render (source image fetched automatically, style defaults to "generalV2")
 - **accept_result** — Apply a generation result to the source drawing (like clicking "Add" in the UI)
 - **list_styles** — List available rendering styles
+
+### 3D Models
+- **generate_3d_model** — Generate a 3D model (GLB) from a drawing's image (basic/detailed_sharp/detailed_smooth/max quality)
+- **get_3d_status** — Check 3D generation progress and get mesh URLs for completed models
+- **export_3d_model** — Get the full CDN URL for a 3D model file
 
 ### Utility
 - **get_drawing_image** — Get a drawing's CDN image URL and metadata

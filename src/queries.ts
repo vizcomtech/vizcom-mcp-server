@@ -17,4 +17,8 @@ export const QUERIES = {
   CreateWorkbench: 'f8a465f759e3f698fc3e32f6743c135dc4e1a579ea35e12efbebd9b06e4bd1e5',
   CreateDrawings: '92e3f0bd088f500e81f29656dfabf2e5d73ef2cbe9a689e64f68d7f10805a171',
   UpdateDrawingLayers: '63aa1fea003b77bfccb0a9b53131b8326b160734a72c827ad688d4f4b239f79a',
+  // Full drawingById with LayerData fragment (includes meshPath, metadata3D)
+  drawingByIdFull: 'f88aacc7f496772d025c9a8068ea8e5e0bf6df4404ec093761559327f2f1b0f7',
+  CreateLayer3dFromDrawing: '18fad73c2dd9c66940dd7f1f80dbbe13989593b11a99e9b5a6f437f9d7fa7e09',
+  MeshConversion: '0e28d3115ebc55c5ba6979ba8209a9358acc475938b142f1691660e377e080d8',
 } as const;
