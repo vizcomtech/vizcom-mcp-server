@@ -1,8 +1,9 @@
 import { z } from 'zod';
+import { randomUUID } from 'node:crypto';
 import type { VizcomClient } from '../client.js';
 import type { ToolDefinition } from '../types.js';
 import { QUERIES } from '../queries.js';
-import { toImageUrl, fetchImageAsBase64, fetchImageBuffer } from '../utils/storage.js';
+import { toImageUrl, fetchImageBuffer } from '../utils/storage.js';
 
 export function exportTools(client: VizcomClient): ToolDefinition[] {
   return [
@@ -61,9 +62,10 @@ export function exportTools(client: VizcomClient): ToolDefinition[] {
     },
     {
       name: 'get_drawing_image',
-      description: `Download a drawing's image as base64. Use this to get the current state of a drawing
-so you can pass it to modify_image or render_sketch for iteration.
-Returns the image from the top visible layer of the drawing.`,
+      description: `Get a drawing's image URL and metadata. Returns the CDN URL for the top visible layer.
+You generally don't need this for modify_image or render_sketch — those tools fetch
+the source image automatically from the drawingId. Use this when you need to inspect
+or display a drawing's current state.`,
       inputSchema: z.object({
         drawingId: z.string().uuid().describe('Drawing ID to get the image from'),
       }),
@@ -96,35 +98,38 @@ Returns the image from the top visible layer of the drawing.`,
           throw new Error('Drawing has no image — it may be empty. Draw a sketch or import an image in the Vizcom UI first.');
         }
 
-        const base64 = await fetchImageAsBase64(imagePath);
-
         return {
           drawingId: drawing.id,
           name: drawing.name,
           width: drawing.width,
           height: drawing.height,
           imageUrl: toImageUrl(imagePath),
-          imageBase64: base64,
         };
       },
     },
     {
       name: 'create_workbench',
-      description: 'Create a new workbench in a folder.',
+      description: `Create a new workbench in a folder.
+Set startInStudio to true (default) to create a blank canvas ready for drawing.
+Set to false to create an empty workbench without a default drawing.`,
       inputSchema: z.object({
         folderId: z
           .string()
           .uuid()
           .describe('Folder ID to create the workbench in'),
         name: z.string().describe('Name for the new workbench'),
+        startInStudio: z.boolean().optional().default(true).describe('Create with a blank canvas ready for drawing (default: true)'),
       }),
-      handler: async ({ folderId, name }) => {
+      handler: async ({ folderId, name, startInStudio }) => {
         const data = await client.query<{
           createWorkbench: {
             workbench: { id: string; name: string };
           };
         }>(QUERIES.CreateWorkbench, {
-          input: { workbench: { folderId, name } },
+          input: {
+            startInStudio: startInStudio ?? true,
+            workbench: { folderId, name },
+          },
         });
         return data.createWorkbench.workbench;
       },
@@ -179,6 +184,100 @@ This is how users normally save results and start new work in Vizcom.`,
         }, files);
 
         return data.createDrawings.drawings[0];
+      },
+    },
+    {
+      name: 'accept_result',
+      description: `Apply a generation result onto the source drawing's layer.
+After modify_image or render_sketch, the output is just a preview — it hasn't been
+committed to the drawing yet. Use this tool to "accept" a result, which replaces the
+drawing's top layer with the generated image (like clicking "Add" in the Vizcom UI).
+
+Pass the drawingId of the source drawing and the imagePath from the generation output.`,
+      inputSchema: z.object({
+        drawingId: z.string().uuid().describe('Drawing ID to apply the result to'),
+        imagePath: z.string().describe('Image storage path from the generation output'),
+      }),
+      handler: async ({ drawingId, imagePath }) => {
+        // Get the drawing's current layers to find the top visible one
+        const data = await client.query<{
+          drawing: {
+            id: string;
+            name: string;
+            layers: {
+              nodes: Array<{
+                id: string;
+                name: string;
+                visible: boolean;
+                imagePath: string | null;
+                orderKey: string;
+              }>;
+            };
+          };
+        }>(QUERIES.drawingById, { id: drawingId });
+
+        const layers = data.drawing.layers.nodes;
+        const topLayer = layers.find((l) => l.visible && l.imagePath);
+
+        const imageBuffer = await fetchImageBuffer(imagePath as string);
+        const files = new Map<string, { buffer: Buffer; filename: string; mimetype: string }>();
+
+        if (topLayer) {
+          // Update the existing top layer with the new image
+          files.set('variables.input.layerUpdates.0.imagePath', {
+            buffer: imageBuffer,
+            filename: 'result.png',
+            mimetype: 'image/png',
+          });
+
+          const result = await client.mutationWithUpload<{
+            updateDrawingLayers: {
+              drawing: { id: string; layers: { nodes: Array<{ id: string; name: string }> } };
+            };
+          }>(QUERIES.UpdateDrawingLayers, {
+            input: {
+              id: drawingId,
+              layerUpdates: [{ id: topLayer.id, imagePath: null }],
+            },
+          }, files);
+
+          return {
+            drawingId: result.updateDrawingLayers.drawing.id,
+            updatedLayerId: topLayer.id,
+            imageUrl: toImageUrl(imagePath as string),
+          };
+        } else {
+          // No existing layer — create a new one
+          const newLayerId = randomUUID();
+          files.set('variables.input.newLayers.0.imagePath', {
+            buffer: imageBuffer,
+            filename: 'result.png',
+            mimetype: 'image/png',
+          });
+
+          const result = await client.mutationWithUpload<{
+            updateDrawingLayers: {
+              drawing: { id: string; layers: { nodes: Array<{ id: string; name: string }> } };
+            };
+          }>(QUERIES.UpdateDrawingLayers, {
+            input: {
+              id: drawingId,
+              newLayers: [{
+                id: newLayerId,
+                name: 'AI Result',
+                visible: true,
+                opacity: 1,
+                imagePath: null,
+              }],
+            },
+          }, files);
+
+          return {
+            drawingId: result.updateDrawingLayers.drawing.id,
+            newLayerId,
+            imageUrl: toImageUrl(imagePath as string),
+          };
+        }
       },
     },
   ];

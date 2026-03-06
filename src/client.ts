@@ -4,9 +4,15 @@ interface VizcomClientConfig {
   organizationId: string;
 }
 
+interface GraphQLError {
+  message: string;
+  extensions?: Record<string, unknown>;
+  path?: string[];
+}
+
 interface GraphQLResponse<T = unknown> {
   data?: T;
-  errors?: Array<{ message: string; extensions?: Record<string, unknown> }>;
+  errors?: GraphQLError[];
 }
 
 function persistedBody(
@@ -18,6 +24,22 @@ function persistedBody(
     query: '',
     variables: variables ?? {},
   };
+}
+
+function formatGraphQLErrors(errors: GraphQLError[]): string {
+  return errors
+    .map((e) => {
+      const parts: string[] = [];
+      if (e.message) parts.push(e.message);
+      if (e.path?.length) parts.push(`(path: ${e.path.join('.')})`);
+      if (e.extensions?.code) parts.push(`[${e.extensions.code}]`);
+      // Include the full extensions for debugging opaque errors
+      if (!e.message && e.extensions) {
+        parts.push(JSON.stringify(e.extensions));
+      }
+      return parts.join(' ') || JSON.stringify(e);
+    })
+    .join('; ');
 }
 
 export class VizcomClient {
@@ -50,16 +72,15 @@ export class VizcomClient {
     try {
       result = JSON.parse(text) as GraphQLResponse<T>;
     } catch {
-      throw new Error(`API returned non-JSON (HTTP ${response.status}): ${text.slice(0, 200)}`);
+      throw new Error(`API returned non-JSON (HTTP ${response.status}): ${text.slice(0, 500)}`);
     }
 
     if (result.errors?.length) {
-      const msg = result.errors.map((e) => e.message).join(', ');
-      throw new Error(msg);
+      throw new Error(formatGraphQLErrors(result.errors));
     }
 
     if (!result.data) {
-      throw new Error('No data returned from GraphQL');
+      throw new Error(`No data in response (HTTP ${response.status}): ${text.slice(0, 500)}`);
     }
 
     return result.data;
@@ -107,14 +128,17 @@ export class VizcomClient {
     try {
       result = JSON.parse(text) as GraphQLResponse<T>;
     } catch {
-      throw new Error(`API returned non-JSON (HTTP ${response.status}): ${text.slice(0, 200)}`);
+      throw new Error(`API returned non-JSON (HTTP ${response.status}): ${text.slice(0, 500)}`);
     }
 
     if (result.errors?.length) {
-      const msg = result.errors.map((e) => e.message).join(', ');
-      throw new Error(msg);
+      throw new Error(formatGraphQLErrors(result.errors));
     }
 
-    return result.data as T;
+    if (!result.data) {
+      throw new Error(`No data in response (HTTP ${response.status}): ${text.slice(0, 500)}`);
+    }
+
+    return result.data;
   }
 }
