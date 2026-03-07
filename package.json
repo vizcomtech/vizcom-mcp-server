@@ -10,6 +10,7 @@
   "main": "dist/index.js",
   "files": [
     "dist",
+    "!dist/__tests__",
     "README.md"
   ],
   "scripts": {
